@@ -9,7 +9,6 @@
 'use strict';
 
 var d3 = require('d3');
-var countryRegex = require('country-regex');
 var turfArea = require('@turf/area');
 var turfCentroid = require('@turf/centroid');
 var turfBbox = require('@turf/bbox');
@@ -19,9 +18,10 @@ var loggers = require('./loggers');
 var isPlainObject = require('./is_plain_object');
 var nestedProperty = require('./nested_property');
 var polygon = require('./polygon');
+var countries = require("i18n-iso-countries");
 
-// make list of all country iso3 ids from at runtime
-var countryIds = Object.keys(countryRegex);
+// Minimize for browser.
+countries.registerLocale(require("i18n-iso-countries/langs/en.json"));
 
 var locationmodeToIdFinder = {
     'ISO-3': identity,
@@ -30,16 +30,14 @@ var locationmodeToIdFinder = {
 };
 
 function countryNameToISO3(countryName) {
-    for(var i = 0; i < countryIds.length; i++) {
-        var iso3 = countryIds[i];
-        var regex = new RegExp(countryRegex[iso3]);
-
-        if(regex.test(countryName.trim().toLowerCase())) return iso3;
+    // Remove trailing and double spaces
+    countryName = countryName.trim().replace(/ +(?= )/g, '');
+    var iso3 = countries.getAlpha3Code(countryName, 'en');
+    if(!iso3) {
+        loggers.log('Unrecognized country name: ' + countryName + '.');
+        return false;
     }
-
-    loggers.log('Unrecognized country name: ' + countryName + '.');
-
-    return false;
+    return iso3;
 }
 
 function locationToFeature(locationmode, location, features) {
